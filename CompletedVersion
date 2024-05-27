@@ -10,6 +10,13 @@ int M1 = 4;
 int E2 = 6;
 int M2 = 7;
 
+// defines pins numbers
+const int trigPin = 6;
+const int echoPin = 3;
+// defines variables
+long duration;
+int distance;
+
 void setup()
 {  
     pinMode(M1, OUTPUT);
