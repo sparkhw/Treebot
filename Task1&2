@@ -1,0 +1,113 @@
+#include <Servo.h>
+
+Servo ServoTop;
+Servo ServoBot;
+
+// Top gripper
+int E1 = 5;
+int M1 = 4;
+// Bottom gripper
+int E2 = 6;
+int M2 = 7;
+
+// Defines pins numbers
+const int trigPin = 8; 
+const int echoPin = 3;
+// Defines variables
+long duration;
+int distance;
+const int safetyDistance = 15; // Magnetic length 16cm
+
+// Record the gripper on the top
+int topgripper = 2;
+
+// Record the direction of moving
+int movingDir=1; // 1--moving up; 2--moving down
+
+void setup() {  
+    pinMode(M1, OUTPUT);
+    pinMode(E1, OUTPUT);
+    pinMode(M2, OUTPUT);
+    pinMode(E2, OUTPUT);
+    ServoTop.attach(9);
+    ServoBot.attach(10);
+    pinMode(trigPin, OUTPUT); // Sets the trigPin as an Output
+    pinMode(echoPin, INPUT); // Sets the echoPin as an Input
+    Serial.begin(9600); // Starts the serial communication
+
+    // Grippers hold on
+    gripHold(M1, E1);
+    gripHold(M2, E2);  
+}
+
+void loop() {
+    // Clears the trigPin
+    digitalWrite(trigPin, LOW);
+    delayMicroseconds(2);
+    // Sets the trigPin on HIGH state for 10 microseconds
+    digitalWrite(trigPin, HIGH);
+    delayMicroseconds(10);
+    digitalWrite(trigPin, LOW);
+  
+    // Reads the echoPin, returns the sound wave travel time in microseconds
+    duration = pulseIn(echoPin, HIGH);
+  
+    // Calculating the distance
+    distance = duration * 0.034 / 2;
+  
+    // Prints the distance on the Serial Monitor
+    Serial.print("Distance: ");
+    Serial.println(distance);
+
+    if (distance > safetyDistance && movingDir==1) {
+        Serial.println("Object detected within safety distance. Running main operations.");
+      if(topgripper == 2){
+          gripperRelease(M1, E1);
+          rotateServo(ServoTop, 1700);
+          gripHold(M1, E1);
+          topgripper=1;
+      }
+      else{
+          gripperRelease(M2, E2);
+          rotateServo(ServoBot, 1700);
+          gripHold(M2, E2);
+          topgripper=2;
+      }
+
+    } else {
+        Serial.println("Top reached, start climbing down");
+        movingDir=2;
+        if (topgripper == 1) {
+            gripperRelease(M1, E1);
+            rotateServo(ServoBot, 1700);
+            gripHold(M1, E1);
+        } else {
+            gripperRelease(M2, E2);
+            rotateServo(ServoTop, 1700);
+            gripHold(M2, E2);
+        }  
+    }
+}
+
+void gripHold(int motor, int enable) {
+    digitalWrite(motor, HIGH); 
+    analogWrite(enable, 255);     
+    delay(8000);           
+    analogWrite(enable, 0); // DC motor stop
+    delay(500);  // Stabilize
+}
+
+void gripperRelease(int motor, int enable) {
+    digitalWrite(motor, LOW); 
+    analogWrite(enable, 255);  
+    delay(8000);  
+    analogWrite(enable, 0); // DC motor stop
+    delay(500); // Stabilize
+}
+
+void rotateServo(Servo &servo, int direction) {
+    servo.writeMicroseconds(direction); 
+    delay(1000);  // Rotate (180 degree turn)
+    servo.writeMicroseconds(1500); // Servo stop
+    delay(500); // Stabilize
+}
